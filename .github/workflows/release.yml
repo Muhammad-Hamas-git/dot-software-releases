@@ -1,0 +1,29 @@
+name: Release
+
+# Files pushed to the "upload" branch (dotFilm-Setup.exe, dotFilm-Portable.zip, version.txt)
+# become a new release. The download links on the website always fetch the latest one.
+on:
+  push:
+    branches: [upload]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(cat version.txt)
+          tag="dotfilm-v$ver"
+          # Same version again: add a build number so the tag is new.
+          if gh release view "$tag" >/dev/null 2>&1; then tag="$tag-${{ github.run_number }}"; fi
+          gh release create "$tag" dotFilm-Setup.exe dotFilm-Portable.zip \
+            --target main --latest --title "dotFilm $ver" \
+            --notes "dotFilm $ver for Windows 10 / 11. dotFilm-Setup.exe installs it; dotFilm-Portable.zip runs without installing."
+      - name: Remove the upload branch
+        run: git push origin --delete upload
